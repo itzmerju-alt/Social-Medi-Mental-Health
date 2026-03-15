@@ -1,0 +1,252 @@
+---
+title: "Final Project on Social Media Effects on Mental Health"
+output: html_document
+author: "Aarju Sapkota"
+urlcolor: blue
+---
+ **Introduction: Exploring the Impact of Social Media on Mental Health**
+
+In my final project, I have decided to visualize the intricate relationship between social media usage and mental health, seeking to unravel the various factors that contribute to the well-being of individuals in the digital age. I have used two datasets that were available in Kaggle as https://www.kaggle.com/datasets/souvikahmed071/social-media-and-mental-health and https://www.kaggle.com/datasets/ngugimacharia/mental-health-and-social-media and made necessary adjustments so that it can be easily accessible and read into R in R studio. These datasets was originally collected for a data science and machine learning project that aimed at investigating the potential correlation between the amount of time an individual spends on social media and the impact it has on their mental health which was exactly what I wanted to visualize here. These datasets under examination encapsulates a comprehensive set of variables, ranging from demographic details such as age, gender, and occupation status, to nuanced aspects like affiliation with organizations, self-reported mental health status, and usage patterns. 
+Exploring these dimensions allows us to discern patterns and trends that may shed light on the complex interplay between online activities and mental well-being.
+
+
+
+## Load Package
+Initially I just loaded the library that we used in class; however, R made me load other library packages like airports and cherryblossom, while I was trying to read the datasets. I actually do not have depth knowledge of where and how these libraries were used exactly.
+
+```{r load-packages, message=FALSE}
+library(tidyverse)
+library(airports)
+library(cherryblossom)
+library(usdata)
+library(openintro)
+library(readxl)
+```
+I called the first dataset as SMandMH for Social Meadia and Mental Health acronym which looks like follows:
+
+```{r}
+SMandMH<-read.csv("SMMandH.csv")
+
+```
+```{r}
+
+DBMHS2022<-read_excel("DBMHS2022.xlsx")
+
+
+```
+
+```{r}
+ #Calculate the percentage of each category
+Usage_percent <- prop.table(table(SMandMH$Usage)) * 100
+
+# Create a pie chart with percentages using ggplot2
+ggplot(data = NULL, aes(x = "", y = Usage_percent, fill = names(Usage_percent))) +
+  geom_bar(width = 1, stat = "identity") +
+  coord_polar("y", start = 0) +
+  labs(title = "Usage Distribution", ) +
+  geom_text(aes(label = paste0(round(Usage_percent, 1), "%")),
+            position = position_stack(vjust = 0.5))
+
+
+```
+The data-set had  481 respondents and the visualization would be more accurate if most of them used social media, so I wanted to see what percentage of people surveyed actually used social media before understanding different other aspects different aspects, like for how long, and how it has affect in mental well being.It turned out that 99.4% respondents used social media, and only 0.6% did not use it. 
+
+Since the data_frame, SMandMH,  had so many variables, and I was not concerned about all of them, so I tidy the data using select function and called it SM_MH as below
+:
+
+```{r}
+
+SM_MH <- SMandMH %>%
+  select(Age, Gender, Relationship_Status, Occupation_Status, Affiliated_Organization, Usage, Platform, Average_Time, No_Purpose_Use, Distraction_Level, Worrying_Level, Depressed_or_down, Sleeping_Difficulty, Seeking_Validation )
+glimpse(SM_MH)
+```
+Then mutated different aspects of mental health Worrying Level, Depressed or down, and Sleeping validation into one as Anxiety because I wanted to see them all at once so I don't have to visualize each one of them separately. I created a new column Anxiety, and I was interested in looking the anxiety level that people rated more than 10 because I think that's fairly a high rating. And it shows that there 383 people out of 481 have anxiety (that I combined using three different variables)  more than 10 using social media, and I think that's a very significant amount. 
+
+
+
+```{r}
+Anxiety<-SM_MH %>%
+  mutate(Anxiety = Depressed_or_down + Sleeping_Difficulty + Worrying_Level) %>%
+  filter(
+    Anxiety >= 8
+    ) %>%
+  select(Anxiety, Depressed_or_down, Sleeping_Difficulty, Worrying_Level)
+
+```
+```{r}
+People<-nrow(Anxiety)
+People
+```
+
+
+
+From above we can see that people rating 4 out of 5 on use of social media with no purpose followed by 3 and 5. That means a lot of people often use social media without having any specific purpose. We'll look further into that, but first let's read another data-set
+
+```{r}
+
+DBMHS2022<-read_excel("DBMHS2022.xlsx")
+
+```
+
+I want to tidy the data so I can use only the variables that interests me
+
+
+```{r}
+DBMHS<-DBMHS2022%>%
+  select(Age,Gender,Frequency_Social_Media_Interaction,Self_reported_Mental_Health_Status,
+Impact_on_Mental_Health_Score)
+glimpse(DBMHS)
+```
+
+
+
+
+Then I wanted to see if people use social media without any purpose or not and if yes let's see what effects it has in mental well being of an individual.
+
+
+
+```{r}
+SM_MH <- SM_MH %>%
+  group_by(No_Purpose_Use) %>%
+  summarise(rating_counts = n())
+print(SM_MH)
+
+```
+```{r}
+SM<-SMandMH%>%
+select( Age, Gender, Occupation_Status, Relationship_Status, Average_Time, Platform)
+
+```
+
+```{r}
+DB<-DBMHS2022%>%
+select(Age, Gender, Frequency_Social_Media_Interaction, Self_reported_Mental_Health_Status,
+Impact_on_Mental_Health_Score)
+
+```
+
+
+
+```{r}
+SM_MH_DBMHS<-SM %>%
+  left_join(DB)
+
+
+```
+
+
+Here I was visualizing if frequency(How often social media is used for interaction)by age has any effects on impact on mental health score, but I do not see any direct relationships as such. It looks like people of age less then 35 has less effects of impact on mental health score no matter how often they use it while it is exact opposite for people who are older than 35, but there's exception when it comes to using it very often. 
+
+
+
+
+```{r}
+ggplot(SM_MH_DBMHS, aes(x = Frequency_Social_Media_Interaction, y=Impact_on_Mental_Health_Score, color= Age, alpha=0.5)) +
+  geom_point() +
+  labs(title = "Social Media Interaction Frequency",
+       x = "Frequency",
+       y = "Impact on Mental Health Score", 
+       caption="Source=mental health and social media")
+
+
+```
+
+
+In order to visualize different aspects on Mental health from both of the datasets, I'm left joining dataset SMandM and dataframe DBMHS. I wanted to left join the dataframe SM_MH with DBMHS , but for some reasons it kept saying errors, so I had to use the first datase as a whole.
+
+```{r}
+SM<-SMandMH%>%
+select( Age, Gender, Occupation_Status, Relationship_Status, Average_Time, Platform, No_Purpose_Use)
+
+```
+
+```{r}
+DB<-DBMHS2022%>%
+select(Age, Gender, Frequency_Social_Media_Interaction, Self_reported_Mental_Health_Status,
+Impact_on_Mental_Health_Score)
+
+```
+
+
+```{r}
+SM_MH_DBMHS <-SM %>%
+  left_join(DB)
+
+
+```
+Then I wanted to see if people use social media without any purpose or not and if yes let's see what effects it has in mental well being of an individual.
+
+
+
+```{r}
+SM_MH <- SM_MH %>%
+  group_by(No_Purpose_Use) %>%
+  summarise(rating_counts = n())
+print(SM_MH)
+
+```
+
+Then I wanted to see which platform was used most, so I can visualize where do people spend most time without any purpose,
+
+
+```{r}
+
+Platform_counts <- table(SM_MH_DBMHS$Platform)
+most_used_Platform <- names(Platform_counts)[which.max(Platform_counts)]
+
+
+print(most_used_Platform)
+```
+
+
+
+```{r}
+filtered_data <- subset(SM_MH_DBMHS, Platform %in% c("Facebook", "Instagram", "YouTube"))
+
+
+filtered_data <- subset(filtered_data, No_Purpose_Use > 4)
+
+ggplot(filtered_data, aes(x = No_Purpose_Use, y = Platform, fill = Platform)) +
+  geom_bar(stat = "identity") +
+  labs(title = "Platforms with 'No Purpose Use' Rating > 4",
+       x = "No Purpose Use",
+       y = "Platform",
+       fill = "Platform") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+```
+It is clear that people spend most time in Fcebook withoout any specific purpose followed by Instagram, but the number of people using Youtube with no purpose is very low. 
+
+#How about  the relationship status, Occupation_Status, Age and Gender are related  in terms of social media use and mental health
+
+```{r}
+ggplot(SM_MH_DBMHS, aes(x = Relationship_Status, fill = Self_reported_Mental_Health_Status)) +
+  geom_bar() +
+  facet_wrap(~Frequency_Social_Media_Interaction, strip.position = "bottom", nrow = 1) +
+  labs(title="Relationship Status vs Self Reported Mental Health")+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1),
+        strip.text = element_text(size = 10, face = "bold"))
+
+```
+
+ Above visualization shows that irrespective of relationship status, but mostly single people, who interact very often through social media reported their mental health status as poor. 
+```{r}
+ggplot(SM_MH_DBMHS , aes(x = Occupation_Status, y = Impact_on_Mental_Health_Score, fill=Average_Time)) +
+  geom_col() +
+  labs(x = "Occupation_Status", y = "Impact on Mental Health Score") +
+  theme_minimal()
+```
+ From this it does look like University students have the highest impact on mental health score based on the average time social media interaction, and the more hours they spent on social media, the more it has impact on Mental Health score. 
+
+```{r}
+ggplot(SM_MH_DBMHS, aes( y = Impact_on_Mental_Health_Score, fill=Gender)) +
+  geom_bar() +
+  facet_wrap(~Frequency_Social_Media_Interaction ) +
+  labs(x = "Gender", y = "Impact on Mental Health Score")
+```
+
+ It shows Female have a lot more impact on mental health status based on how often they use social media interaction than men. 
+ 
+ 
+ Conclusion
+ This exploration not only contributes to our understanding of the broader societal impact of social media but also provides a valuable perspective for informed decision-making in digital spaces. There are several visualizations that directly pointed that the use of social media have significant effects on mental well-being while it varies within different viariables such as age, gender, occupation status  and so on. Even thpugh there were several challenges while analysing these data, I thoroughly enjoyed doing it.
